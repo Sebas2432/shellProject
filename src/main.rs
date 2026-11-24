@@ -1,5 +1,4 @@
 use console::Term;
-use console::Key;
 use std::thread;
 use std::env;
 use std::io::Write;
@@ -48,7 +47,7 @@ fn lsh_execute(args: Vec<String>) -> i8 {
         lsh_exit,
     ];
 
-    if args[0].is_empty() {
+    if args.is_empty() || args[0].is_empty() {
         return 1
     }
     for i in 0..lsh_num_builtins() {
@@ -87,7 +86,7 @@ fn lsh_split_line(line: String) -> Vec<String>{
     let mut split_line = line.split(LSH_TOK_DELIM);
     token = split_line.next().unwrap();
 
-    while !token.is_empty() {
+    while split_line.next().is_some() {
         tokens.push(String::from(token));
         if split_line.next().is_some() { token = split_line.next().unwrap(); }
     }
@@ -102,24 +101,23 @@ fn lsh_read_line() -> String {
     loop {
         let term = Term::stdout();
         let c = term.read_char().unwrap();
-        match Key::Char(c) {
-            Key::Enter => {
+        match c {
+            '\n' | '\r' => {
                 println!();
                 return buffer.into_iter().collect();
             }
-            Key::Backspace => {
+            '\x08' => {
                 if !buffer.is_empty() {
                     buffer.pop();
                     term.move_cursor_left(1).unwrap();
                     std::io::stdout().flush().unwrap();
                 }
             }
-            Key::Char(c) => {
+            _ => {
                 buffer.push(c);
                 print!("{}", c);
                 std::io::stdout().flush().unwrap();
             }
-            _ => {}
         }
     }
 }
