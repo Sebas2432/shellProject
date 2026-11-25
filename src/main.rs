@@ -1,4 +1,5 @@
 use console::Term;
+use console::Key;
 use std::thread;
 use std::env;
 use std::io::Write;
@@ -15,7 +16,7 @@ fn lsh_num_builtins() -> usize {
 }
 
 fn lsh_cd(args: Vec<String>) -> i8 {
-    if args[1].is_empty() {
+    if !args.get(1).is_some() {
         println!("Error: expected argument to \"cd\"\n");
     } else {
         let result = env::set_current_dir(&args[1]);
@@ -66,7 +67,7 @@ fn lsh_launch(args: Vec<String>) -> i8{
             .status();
         match status {
             Ok(status) => {
-                if status.success() { 0 } else { 1 }
+                if status.success() { 1 } else { 0 }
             }
             Err(err) => {
                 println!("Error: {}", err);
@@ -75,8 +76,8 @@ fn lsh_launch(args: Vec<String>) -> i8{
         }
     });
 
-    let result = handle.join().unwrap();
-    return result;
+    let _ = handle.join();
+    return 1
 }
 
 fn lsh_split_line(line: String) -> Vec<String>{
@@ -100,24 +101,26 @@ fn lsh_read_line() -> String {
     // Because pushing onto Vector does that automatically
     loop {
         let term = Term::stdout();
-        let c = term.read_char().unwrap();
-        match c {
-            '\n' | '\r' => {
-                println!();
+        match term.read_key().unwrap() {
+            Key::Enter => {
+                term.write_line("").unwrap();
                 return buffer.into_iter().collect();
             }
-            '\x08' => {
-                if !buffer.is_empty() {
-                    buffer.pop();
-                    term.move_cursor_left(1).unwrap();
+            Key::Backspace | Key::Del => {
+                if buffer.pop().is_some() {
+                    term.clear_chars(1).unwrap();
                     std::io::stdout().flush().unwrap();
                 }
             }
-            _ => {
+            Key::Char(c) => {
                 buffer.push(c);
                 print!("{}", c);
                 std::io::stdout().flush().unwrap();
             }
+            Key::CtrlC => {
+                term.write_line("").unwrap(); std::process::exit(1);
+            }
+            _ => {}
         }
     }
 }
@@ -129,7 +132,7 @@ fn lsh_loop() {
         std::io::stdout().flush().unwrap();
         status = lsh_execute(lsh_split_line(lsh_read_line()));
 
-        if status == 0 {
+        if status <= 0 {
             break;
         }
     }
