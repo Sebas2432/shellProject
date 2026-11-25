@@ -27,11 +27,11 @@ fn lsh_cd(args: Vec<String>) -> i8 {
     return 1
 }
 
-fn lsh_help(args: Vec<String>) -> i8{
+fn lsh_help(_args: Vec<String>) -> i8{
     println!("Type program names and arguments, and hit enter. \n");
     println!("The following are built in: \n");
-    for i in 1..args.len() {
-        println!("{}\n", args[i]);
+    for i in 0..BUILTIN_STR.len() {
+        println!("{}\n", BUILTIN_STR[i]);
     }
     println!("Use the man command for information on other programs");
     return 1
@@ -87,9 +87,10 @@ fn lsh_split_line(line: String) -> Vec<String>{
     let mut split_line = line.split(LSH_TOK_DELIM);
     token = split_line.next().unwrap();
 
-    while split_line.next().is_some() {
+    while !token.is_empty() {
         tokens.push(String::from(token));
         if split_line.next().is_some() { token = split_line.next().unwrap(); }
+        else { token = "" };
     }
     return tokens;
 }
